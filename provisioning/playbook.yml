@@ -1,5 +1,5 @@
 - name: Provision dns
-  hosts: dns_nodes
+  hosts: dns-nodes
   become: true
   vars:
     lab_mode: dns
@@ -9,7 +9,7 @@
   - common
   - dns
 - name: Provision workstation
-  hosts: workstation_nodes
+  hosts: workstation-nodes
   become: true
   vars:
     lab_mode: client
@@ -19,7 +19,7 @@
   - common
   - client
 - name: Provision attacker
-  hosts: attacker_nodes
+  hosts: attacker-nodes
   become: true
   vars:
     lab_mode: attacker
@@ -33,7 +33,7 @@
   - attacker
   - web
 - name: Provision admin
-  hosts: admin_nodes
+  hosts: admin-nodes
   become: true
   vars:
     lab_mode: admin
@@ -43,7 +43,7 @@
   - common
   - admin
 - name: Provision portal
-  hosts: portal_nodes
+  hosts: portal-nodes
   become: true
   vars:
     web_identity: NORTHSTAR-INTRANET
@@ -52,7 +52,7 @@
   roles:
   - web
 - name: Provision files
-  hosts: files_nodes
+  hosts: files-nodes
   become: true
   vars:
     web_identity: NORTHSTAR-FILES

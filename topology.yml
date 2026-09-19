@@ -82,21 +82,21 @@ router_mappings:
   network: external
   ip: 10.60.40.1
 groups:
-- name: admin_nodes
+- name: admin-nodes
   nodes:
   - admin
-- name: dns_nodes
+- name: dns-nodes
   nodes:
   - dns
-- name: portal_nodes
+- name: portal-nodes
   nodes:
   - portal
-- name: files_nodes
+- name: files-nodes
   nodes:
   - files
-- name: workstation_nodes
+- name: workstation-nodes
   nodes:
   - workstation
-- name: attacker_nodes
+- name: attacker-nodes
   nodes:
   - attacker

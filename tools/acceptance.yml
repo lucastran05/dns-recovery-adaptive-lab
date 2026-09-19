@@ -1,7 +1,7 @@
 ---
 # Instructor-only. Exercises one disposable sandbox and leaves it recovered/hardened.
 - name: Native end-to-end DNS acceptance
-  hosts: admin_nodes
+  hosts: admin-nodes
   become: true
   vars_files:
     - ../provisioning/group_vars/all.yml

@@ -1,6 +1,6 @@
 ---
 - name: Verify sandbox services from management node
-  hosts: admin_nodes
+  hosts: admin-nodes
   become: true
   vars_files:
     - ../provisioning/group_vars/all.yml

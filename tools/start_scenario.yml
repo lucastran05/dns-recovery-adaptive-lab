@@ -1,5 +1,5 @@
 - name: Instructor start_scenario
-  hosts: admin_nodes
+  hosts: admin-nodes
   become: true
   vars_files:
   - ../provisioning/group_vars/all.yml
