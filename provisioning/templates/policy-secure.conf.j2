@@ -1,0 +1,5 @@
+update-policy {
+ grant recovery-ddns name {{ portal_name }} A;
+ grant recovery-ddns name {{ files_name }} A;
+ grant recovery-ddns name _probe.{{ zone }} TXT;
+};

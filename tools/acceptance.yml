@@ -1,0 +1,55 @@
+---
+# Instructor-only. Exercises one disposable sandbox and leaves it recovered/hardened.
+- name: Native end-to-end DNS acceptance
+  hosts: admin_nodes
+  become: true
+  vars_files:
+    - ../provisioning/group_vars/all.yml
+  tasks:
+    - name: Reset lab controls and records
+      ansible.builtin.uri:
+        url: '{{ admin_api }}/reset'
+        method: POST
+        body_format: json
+        body: {}
+        headers:
+          Authorization: 'Bearer {{ instructor_token }}'
+        timeout: 120
+      no_log: true
+    - name: Run incident and prime client cache
+      ansible.builtin.uri:
+        url: '{{ admin_api }}/scenario'
+        method: POST
+        body_format: json
+        body: {}
+        headers:
+          Authorization: 'Bearer {{ instructor_token }}'
+        timeout: 120
+      no_log: true
+    - name: Check before repair
+      ansible.builtin.command: runuser -u analyst -- dns-lab check
+      changed_when: false
+      failed_when: before.rc != 1
+      register: before
+    - name: Revoke legacy key permission
+      ansible.builtin.command: runuser -u analyst -- dns-lab harden
+      register: hardened
+      changed_when: true
+    - name: Revocation alone must not pass
+      ansible.builtin.command: runuser -u analyst -- dns-lab check
+      changed_when: false
+      failed_when: partial.rc != 1
+      register: partial
+    - name: Restore authoritative records
+      ansible.builtin.command: runuser -u analyst -- dns-lab restore
+      changed_when: true
+    - name: Flush employee cache
+      ansible.builtin.command: runuser -u analyst -- dns-lab flush
+      changed_when: true
+    - name: Require successful recovery and explicit refusal
+      ansible.builtin.command: runuser -u analyst -- dns-lab check
+      changed_when: false
+      register: final_check
+    - name: Show complete acceptance result
+      ansible.builtin.debug:
+        var: final_check.stdout

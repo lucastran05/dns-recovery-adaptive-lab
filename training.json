@@ -1,0 +1,563 @@
+{
+  "title": "Northstar DNS Recovery: điều tra và khôi phục adaptive",
+  "description": "Sự cố DNS do TSIG key cũ bị lộ: chuyển hướng portal, mất File Server, cache và thu hồi dynamic update.",
+  "prerequisites": [
+    "DNS và TCP/IP cơ bản",
+    "CLI Linux"
+  ],
+  "outcomes": [
+    "Phân biệt lỗi DNS với lỗi web",
+    "Điều tra BIND update log",
+    "Thu hồi update policy",
+    "Khôi phục record và DNS cache",
+    "Kiểm tra cập nhật hợp lệ và trái phép"
+  ],
+  "state": "UNRELEASED",
+  "phases": [
+    {
+      "title": "Northstar Logistics: sự cố truy cập nội bộ",
+      "phase_type": "INFO",
+      "order": 0,
+      "content": "Nhân viên Northstar Logistics báo cổng portal hiển thị trang khác thường và kho tài liệu không truy cập được. Bạn là quản trị viên trực ca. Hãy xác định nguyên nhân, khôi phục dịch vụ và ngăn việc sửa DNS trái phép tái diễn. Hạ tầng này độc lập với bài SIEM; toàn bộ dữ liệu là giả lập. Không thu thập hay nhập mật khẩu thật vào website mô phỏng. Thời lượng 100 phút."
+    },
+    {
+      "title": "Đánh giá kiến thức DNS",
+      "phase_type": "QUESTIONNAIRE",
+      "order": 1,
+      "questionnaire_type": "ADAPTIVE",
+      "questions": [
+        {
+          "order": 0,
+          "text": "Bản ghi nào ánh xạ tên máy tới địa chỉ IPv4?",
+          "question_type": "MCQ",
+          "choices": [
+            {
+              "text": "A",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "MX",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "TXT",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "order": 1,
+          "text": "Nguồn bằng chứng phù hợp để tìm ai sửa bản ghi DNS?",
+          "question_type": "MCQ",
+          "choices": [
+            {
+              "text": "BIND update/security log",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "Dung lượng đĩa web",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Màu nền website",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "text": "Khôi phục zone authoritative có luôn xóa cache client ngay không?",
+          "question_type": "MCQ",
+          "choices": [
+            {
+              "text": "Không, cache có TTL riêng",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "Có, mọi client đổi ngay",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Chỉ cần khởi động router",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "text": "Khi TSIG key bị lộ, cần làm gì với quyền của key đó?",
+          "question_type": "MCQ",
+          "choices": [
+            {
+              "text": "Thu hồi quyền hoặc thay key, vẫn giữ cập nhật hợp lệ",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "Chỉ sửa lại bản ghi",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Tắt toàn bộ truy vấn DNS",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "text": "Timeout khi thử cập nhật có chứng minh bị từ chối bởi policy không?",
+          "question_type": "MCQ",
+          "choices": [
+            {
+              "text": "Không, cần phản hồi từ chối rõ ràng và kiểm tra cập nhật hợp lệ",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "Có, mọi lỗi đều là an toàn",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Có, nếu ping thành công",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        }
+      ],
+      "phase_relations": [
+        {
+          "order": 0,
+          "question_orders": [
+            0
+          ],
+          "phase_order": 3,
+          "success_rate": 100
+        },
+        {
+          "order": 1,
+          "question_orders": [
+            1
+          ],
+          "phase_order": 4,
+          "success_rate": 100
+        },
+        {
+          "order": 2,
+          "question_orders": [
+            2
+          ],
+          "phase_order": 5,
+          "success_rate": 100
+        },
+        {
+          "order": 3,
+          "question_orders": [
+            3
+          ],
+          "phase_order": 6,
+          "success_rate": 100
+        },
+        {
+          "order": 4,
+          "question_orders": [
+            4
+          ],
+          "phase_order": 7,
+          "success_rate": 100
+        }
+      ]
+    },
+    {
+      "title": "Truy cập máy quản trị",
+      "phase_type": "ACCESS",
+      "order": 2,
+      "passkey": "start",
+      "cloud_content": "Mở console node admin, đăng nhập analyst / Analyst-DNS-2026!. Chạy dns-lab diagnose và dns-lab client. Workbench: http://10.60.10.10:8080 nếu có route vào sandbox; dùng cùng tài khoản. Nhập start để tiếp tục. Dùng credential instructor cấp nếu đã thay mặc định.",
+      "local_content": "Cần các VM có data-plane theo topology; không kèm Vagrant image. Mở console node admin, đăng nhập analyst / Analyst-DNS-2026!. Chạy dns-lab diagnose và dns-lab client. Workbench: http://10.60.10.10:8080 nếu có route vào sandbox; dùng cùng tài khoản. Nhập start để tiếp tục. Dùng credential instructor cấp nếu đã thay mặc định."
+    },
+    {
+      "title": "Chẩn đoán chuyển hướng",
+      "phase_type": "TRAINING",
+      "order": 3,
+      "estimated_duration": 15,
+      "allowed_commands": 0,
+      "allowed_wrong_answers": 10,
+      "tasks": [
+        {
+          "title": "Chẩn đoán chuyển hướng · Nâng cao",
+          "order": 0,
+          "content": "Xác định IP hiện tại bất thường mà portal.corp.test trỏ tới. Nộp duy nhất IP.\n\nSo sánh kết quả authoritative, cache máy nhân viên và HTTP identity. Chứng minh đây không chỉ là Web Server chuẩn thay giao diện.",
+          "answer": "10.60.40.10",
+          "solution": "Chạy dns-lab diagnose; portal.addresses khác IP chuẩn trong hồ sơ tài sản. Kiểm tra dns-lab client để thấy ROGUE-TRAINING-PAGE.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Chẩn đoán chuyển hướng · Tiêu chuẩn",
+          "order": 1,
+          "content": "Xác định IP hiện tại bất thường mà portal.corp.test trỏ tới. Nộp duy nhất IP.\n\nDùng workbench hoặc dns-lab để thu thập bằng chứng. Ghi rõ nguồn, timestamp và kết quả trước/sau.",
+          "answer": "10.60.40.10",
+          "solution": "Chạy dns-lab diagnose; portal.addresses khác IP chuẩn trong hồ sơ tài sản. Kiểm tra dns-lab client để thấy ROGUE-TRAINING-PAGE.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Chẩn đoán chuyển hướng · Cơ bản",
+          "order": 2,
+          "content": "Xác định IP hiện tại bất thường mà portal.corp.test trỏ tới. Nộp duy nhất IP.\n\nChạy dig @10.60.20.53 portal.corp.test A +short hoặc dns-lab diagnose. So sánh với portal chuẩn 10.60.20.10.",
+          "answer": "10.60.40.10",
+          "solution": "Chạy dns-lab diagnose; portal.addresses khác IP chuẩn trong hồ sơ tài sản. Kiểm tra dns-lab client để thấy ROGUE-TRAINING-PAGE.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        }
+      ],
+      "decision_matrix": [
+        {
+          "order": 0,
+          "questionnaire_answered": 1.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        }
+      ],
+      "expected_commands": [
+        "dig",
+        "dns-lab"
+      ],
+      "mitre_techniques": []
+    },
+    {
+      "title": "Truy vết quyền cập nhật",
+      "phase_type": "TRAINING",
+      "order": 4,
+      "estimated_duration": 20,
+      "allowed_commands": 0,
+      "allowed_wrong_answers": 10,
+      "tasks": [
+        {
+          "title": "Truy vết quyền cập nhật · Nâng cao",
+          "order": 0,
+          "content": "Xác định tên TSIG key cũ đã được dùng để sửa bản ghi. Nộp tên key không có dấu chấm cuối.\n\nDựng timeline cập nhật, nêu nguồn request và giới hạn chứng cứ: dùng key bị lộ không đồng nghĩa đã xác định người sở hữu hành vi.",
+          "answer": "legacy-ddns",
+          "solution": "Xem dns-lab evidence và dns-lab policy. Log BIND ghi client/key và các thay đổi portal/files; policy grant cho legacy-ddns.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Truy vết quyền cập nhật · Tiêu chuẩn",
+          "order": 1,
+          "content": "Xác định tên TSIG key cũ đã được dùng để sửa bản ghi. Nộp tên key không có dấu chấm cuối.\n\nDùng workbench hoặc dns-lab để thu thập bằng chứng. Ghi rõ nguồn, timestamp và kết quả trước/sau.",
+          "answer": "legacy-ddns",
+          "solution": "Xem dns-lab evidence và dns-lab policy. Log BIND ghi client/key và các thay đổi portal/files; policy grant cho legacy-ddns.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Truy vết quyền cập nhật · Cơ bản",
+          "order": 2,
+          "content": "Xác định tên TSIG key cũ đã được dùng để sửa bản ghi. Nộp tên key không có dấu chấm cuối.\n\nTìm từ key hoặc signer trong dns-lab evidence, rồi đối chiếu các grant trong dns-lab policy.",
+          "answer": "legacy-ddns",
+          "solution": "Xem dns-lab evidence và dns-lab policy. Log BIND ghi client/key và các thay đổi portal/files; policy grant cho legacy-ddns.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        }
+      ],
+      "decision_matrix": [
+        {
+          "order": 0,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 1.0,
+          "solution_displayed": 1.0,
+          "wrong_answers": 1.0
+        },
+        {
+          "order": 1,
+          "questionnaire_answered": 1.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        }
+      ],
+      "expected_commands": [
+        "dig",
+        "dns-lab"
+      ],
+      "mitre_techniques": []
+    },
+    {
+      "title": "Lập kế hoạch khôi phục",
+      "phase_type": "TRAINING",
+      "order": 5,
+      "estimated_duration": 15,
+      "allowed_commands": 0,
+      "allowed_wrong_answers": 10,
+      "tasks": [
+        {
+          "title": "Lập kế hoạch khôi phục · Nâng cao",
+          "order": 0,
+          "content": "Theo hồ sơ tài sản, files.corp.test phải trỏ tới địa chỉ IPv4 nào? Nộp duy nhất IP.\n\nGiải thích sự khác biệt giữa NXDOMAIN, NOERROR không có A record và timeout. Đề xuất thứ tự thu hồi key, khôi phục RRset và kiểm tra cache.",
+          "answer": "10.60.20.20",
+          "solution": "Hồ sơ tài sản: portal 10.60.20.10; files 10.60.20.20; DNS 10.60.20.53. Hiện files bị xóa A record.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Lập kế hoạch khôi phục · Tiêu chuẩn",
+          "order": 1,
+          "content": "Theo hồ sơ tài sản, files.corp.test phải trỏ tới địa chỉ IPv4 nào? Nộp duy nhất IP.\n\nDùng workbench hoặc dns-lab để thu thập bằng chứng. Ghi rõ nguồn, timestamp và kết quả trước/sau.",
+          "answer": "10.60.20.20",
+          "solution": "Hồ sơ tài sản: portal 10.60.20.10; files 10.60.20.20; DNS 10.60.20.53. Hiện files bị xóa A record.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Lập kế hoạch khôi phục · Cơ bản",
+          "order": 2,
+          "content": "Theo hồ sơ tài sản, files.corp.test phải trỏ tới địa chỉ IPv4 nào? Nộp duy nhất IP.\n\nĐọc STUDENT_GUIDE.md trên node admin. Xem files trong dns-lab diagnose và phân biệt NXDOMAIN với timeout.",
+          "answer": "10.60.20.20",
+          "solution": "Hồ sơ tài sản: portal 10.60.20.10; files 10.60.20.20; DNS 10.60.20.53. Hiện files bị xóa A record.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        }
+      ],
+      "decision_matrix": [
+        {
+          "order": 0,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        },
+        {
+          "order": 1,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 1.0,
+          "solution_displayed": 1.0,
+          "wrong_answers": 1.0
+        },
+        {
+          "order": 2,
+          "questionnaire_answered": 1.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        }
+      ],
+      "expected_commands": [
+        "dig",
+        "dns-lab"
+      ],
+      "mitre_techniques": []
+    },
+    {
+      "title": "Thu hồi quyền và khôi phục",
+      "phase_type": "TRAINING",
+      "order": 6,
+      "estimated_duration": 20,
+      "allowed_commands": 0,
+      "allowed_wrong_answers": 10,
+      "tasks": [
+        {
+          "title": "Thu hồi quyền và khôi phục · Nâng cao",
+          "order": 0,
+          "content": "Thu hồi quyền legacy key, phục hồi hai bản ghi và làm mới cache nếu cần. Chạy dns-lab check, nộp flag khi passed=true.\n\nKhôi phục có bằng chứng trước/sau. Việc ngắt DNS hoặc chặn mọi dynamic update không được coi là thành công; recovery key vẫn phải cập nhật được.",
+          "answer": "CRCZ{DNS_RESTORED_LEGACY_UPDATE_REVOKED}",
+          "solution": "Chạy dns-lab harden; dns-lab restore; dns-lab flush; dns-lab check. Policy giữ quyền recovery-ddns, loại quyền legacy-ddns.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Thu hồi quyền và khôi phục · Tiêu chuẩn",
+          "order": 1,
+          "content": "Thu hồi quyền legacy key, phục hồi hai bản ghi và làm mới cache nếu cần. Chạy dns-lab check, nộp flag khi passed=true.\n\nDùng workbench hoặc dns-lab để thu thập bằng chứng. Ghi rõ nguồn, timestamp và kết quả trước/sau.",
+          "answer": "CRCZ{DNS_RESTORED_LEGACY_UPDATE_REVOKED}",
+          "solution": "Chạy dns-lab harden; dns-lab restore; dns-lab flush; dns-lab check. Policy giữ quyền recovery-ddns, loại quyền legacy-ddns.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Thu hồi quyền và khôi phục · Cơ bản",
+          "order": 2,
+          "content": "Thu hồi quyền legacy key, phục hồi hai bản ghi và làm mới cache nếu cần. Chạy dns-lab check, nộp flag khi passed=true.\n\nDùng dns-lab harden rồi dns-lab restore. So sánh dns-lab diagnose với dns-lab client. Nếu cache còn cũ, chạy dns-lab flush rồi dns-lab check.",
+          "answer": "CRCZ{DNS_RESTORED_LEGACY_UPDATE_REVOKED}",
+          "solution": "Chạy dns-lab harden; dns-lab restore; dns-lab flush; dns-lab check. Policy giữ quyền recovery-ddns, loại quyền legacy-ddns.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        }
+      ],
+      "decision_matrix": [
+        {
+          "order": 0,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        },
+        {
+          "order": 1,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        },
+        {
+          "order": 2,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 1.0,
+          "solution_displayed": 1.0,
+          "wrong_answers": 1.0
+        },
+        {
+          "order": 3,
+          "questionnaire_answered": 1.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        }
+      ],
+      "expected_commands": [
+        "dig",
+        "dns-lab"
+      ],
+      "mitre_techniques": []
+    },
+    {
+      "title": "Xác minh chống tái diễn",
+      "phase_type": "TRAINING",
+      "order": 7,
+      "estimated_duration": 15,
+      "allowed_commands": 0,
+      "allowed_wrong_answers": 10,
+      "tasks": [
+        {
+          "title": "Xác minh chống tái diễn · Nâng cao",
+          "order": 0,
+          "content": "Thực hiện lần kiểm tra thứ hai và báo cáo bằng chứng. Nộp flag kiểm tra, giao báo cáo riêng cho instructor.\n\nGiải thích vì sao timeout/BADSIG không thay thế bằng chứng REFUSED; nêu lý do DNSSEC không tự sửa một thay đổi được cấp quyền bởi key bị lộ.",
+          "answer": "CRCZ{DNS_RESTORED_LEGACY_UPDATE_REVOKED}",
+          "solution": "dns-lab check phải đạt 9 điều kiện. Xem evidence để thấy legacy update REFUSED và cập nhật recovery hợp lệ. Điền docs/REPORT_TEMPLATE.md.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Xác minh chống tái diễn · Tiêu chuẩn",
+          "order": 1,
+          "content": "Thực hiện lần kiểm tra thứ hai và báo cáo bằng chứng. Nộp flag kiểm tra, giao báo cáo riêng cho instructor.\n\nDùng workbench hoặc dns-lab để thu thập bằng chứng. Ghi rõ nguồn, timestamp và kết quả trước/sau.",
+          "answer": "CRCZ{DNS_RESTORED_LEGACY_UPDATE_REVOKED}",
+          "solution": "dns-lab check phải đạt 9 điều kiện. Xem evidence để thấy legacy update REFUSED và cập nhật recovery hợp lệ. Điền docs/REPORT_TEMPLATE.md.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        },
+        {
+          "title": "Xác minh chống tái diễn · Cơ bản",
+          "order": 2,
+          "content": "Thực hiện lần kiểm tra thứ hai và báo cáo bằng chứng. Nộp flag kiểm tra, giao báo cáo riêng cho instructor.\n\nChạy dns-lab check; lưu output và điền checklist 9 điều kiện.",
+          "answer": "CRCZ{DNS_RESTORED_LEGACY_UPDATE_REVOKED}",
+          "solution": "dns-lab check phải đạt 9 điều kiện. Xem evidence để thấy legacy update REFUSED và cập nhật recovery hợp lệ. Điền docs/REPORT_TEMPLATE.md.",
+          "incorrect_answer_limit": 10,
+          "modify_sandbox": false,
+          "sandbox_change_expected_duration": 0
+        }
+      ],
+      "decision_matrix": [
+        {
+          "order": 0,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        },
+        {
+          "order": 1,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        },
+        {
+          "order": 2,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        },
+        {
+          "order": 3,
+          "questionnaire_answered": 0.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 1.0,
+          "solution_displayed": 1.0,
+          "wrong_answers": 1.0
+        },
+        {
+          "order": 4,
+          "questionnaire_answered": 1.0,
+          "keyword_used": 0.0,
+          "completed_in_time": 0.0,
+          "solution_displayed": 0.0,
+          "wrong_answers": 0.0
+        }
+      ],
+      "expected_commands": [
+        "dig",
+        "dns-lab"
+      ],
+      "mitre_techniques": []
+    },
+    {
+      "title": "Phản hồi",
+      "phase_type": "QUESTIONNAIRE",
+      "order": 8,
+      "questionnaire_type": "GENERAL",
+      "questions": [
+        {
+          "order": 0,
+          "question_type": "FFQ",
+          "text": "Bạn gặp khó ở bước nào? Hãy đề xuất một cải tiến cho quy trình quản lý DNS.",
+          "choices": []
+        }
+      ],
+      "phase_relations": []
+    }
+  ],
+  "estimated_duration": 100
+}

@@ -1,0 +1,40 @@
+---
+- name: Verify sandbox services from management node
+  hosts: admin_nodes
+  become: true
+  vars_files:
+    - ../provisioning/group_vars/all.yml
+  tasks:
+    - name: Check agents
+      ansible.builtin.uri:
+        url: '{{ item }}/health'
+        status_code: 200
+      loop:
+        - '{{ admin_api }}'
+        - '{{ dns_api }}'
+        - '{{ client_api }}'
+        - '{{ attacker_api }}'
+    - name: Query authoritative DNS
+      ansible.builtin.command:
+        argv: [dig, '@{{ dns_ip }}', '{{ zone }}', SOA, '+time=2', '+tries=1']
+      changed_when: false
+      register: soa
+    - name: Require authoritative response
+      ansible.builtin.assert:
+        that:
+          - "'status: NOERROR' in soa.stdout"
+          - "' aa ' in soa.stdout"
+    - name: Verify real portal identity
+      ansible.builtin.uri:
+        url: 'http://{{ portal_ip }}/identity.json'
+        return_content: true
+      register: portal
+    - ansible.builtin.assert:
+        that: portal.json.service_id == 'NORTHSTAR-INTRANET'
+    - name: Verify file service
+      ansible.builtin.uri:
+        url: 'http://{{ files_ip }}/handbook.json'
+        return_content: true
+      register: files
+    - ansible.builtin.assert:
+        that: files.json.document_id == 'NS-HANDBOOK-2026'

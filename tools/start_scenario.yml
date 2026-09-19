@@ -1,0 +1,21 @@
+- name: Instructor start_scenario
+  hosts: admin_nodes
+  become: true
+  vars_files:
+  - ../provisioning/group_vars/all.yml
+  tasks:
+  - name: Call fixed instructor operation
+    ansible.builtin.uri:
+      url: '{{ admin_api }}/scenario'
+      method: POST
+      body_format: json
+      body: {}
+      headers:
+        Authorization: Bearer {{ instructor_token }}
+      status_code: 200
+      timeout: 120
+    register: result
+    no_log: true
+  - name: Display operation result without credentials
+    ansible.builtin.debug:
+      var: result.json

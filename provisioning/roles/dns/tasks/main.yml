@@ -1,0 +1,86 @@
+- name: Install BIND9
+  ansible.builtin.apt:
+    name: bind9
+    state: present
+- name: Create writable BIND log directory
+  ansible.builtin.file:
+    path: /var/cache/bind/dns-lab
+    state: directory
+    owner: bind
+    group: bind
+    mode: '0750'
+- name: Install named options
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/named.options.j2'
+    dest: /etc/bind/named.conf.options
+    owner: root
+    group: bind
+    mode: '0640'
+- name: Install named zone declaration
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/named.local.j2'
+    dest: /etc/bind/named.conf.local
+    owner: root
+    group: bind
+    mode: '0640'
+- name: Install TSIG keys for BIND
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/{{ item }}.key.j2'
+    dest: /etc/bind/{{ item }}.key
+    owner: root
+    group: bind
+    mode: '0640'
+  loop:
+  - legacy
+  - recovery
+  no_log: true
+- name: Install recovery credential for nsupdate
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/recovery.key.j2'
+    dest: /etc/dns-lab/recovery.key
+    mode: '0600'
+  no_log: true
+- name: Install private policy versions
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/policy-{{ item }}.conf.j2'
+    dest: /etc/dns-lab/policy-{{ item }}.conf
+    mode: '0600'
+  loop:
+  - vulnerable
+  - secure
+- name: Initialize vulnerable policy only on first deployment
+  ansible.builtin.copy:
+    src: /etc/dns-lab/policy-vulnerable.conf
+    remote_src: true
+    dest: /etc/bind/dns-lab-policy.conf
+    owner: root
+    group: bind
+    mode: '0640'
+    force: false
+- name: Initialize dynamic zone without overwriting journal state
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/zone.j2'
+    dest: /var/lib/bind/db.corp.test
+    owner: bind
+    group: bind
+    mode: '0640'
+    force: false
+- name: Validate named configuration
+  ansible.builtin.command: named-checkconf
+  changed_when: false
+- name: Start named
+  ansible.builtin.systemd:
+    name: '{{ bind_service }}'
+    state: restarted
+    enabled: true
+- name: Install agent unit
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/agent.service.j2'
+    dest: /etc/systemd/system/dns-lab-agent.service
+    mode: '0644'
+- name: Start agent
+  ansible.builtin.systemd:
+    name: dns-lab-agent
+    state: started
+    enabled: true
+    daemon_reload: true

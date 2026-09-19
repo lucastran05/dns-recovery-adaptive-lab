@@ -1,0 +1,73 @@
+- name: Install Python HTTP runtime
+  ansible.builtin.apt:
+    name: python3
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+- name: Create web account
+  ansible.builtin.user:
+    name: dns-web
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+- name: Create document root
+  ansible.builtin.file:
+    path: /srv/dns-lab-www
+    state: directory
+    mode: '0755'
+- name: Write service identity
+  ansible.builtin.copy:
+    dest: /srv/dns-lab-www/identity.json
+    content: '{{ {"service_id": web_identity, "company": "Northstar Logistics"} |
+      to_nice_json }}'
+    mode: '0644'
+- name: Write synthetic handbook
+  ansible.builtin.copy:
+    dest: /srv/dns-lab-www/handbook.json
+    content: '{{ {"document_id": "NS-HANDBOOK-2026", "title": "Quy trình kho vận giả
+      lập"} | to_nice_json }}'
+    mode: '0644'
+  when: web_identity == "NORTHSTAR-FILES"
+- name: Write portal page
+  ansible.builtin.copy:
+    dest: /srv/dns-lab-www/index.html
+    content: <!doctype html><meta charset="utf-8"><title>{{ web_title }}</title><h1>{{
+      web_title }}</h1><p>Môi trường diễn tập Northstar. Dữ liệu giả lập; trang không
+      thu thập mật khẩu.</p>
+    mode: '0644'
+- name: Install HTTP service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/dns-lab-web.service
+    content: '[Unit]
+
+      Description=Northstar lab HTTP
+
+      After=network-online.target
+
+      [Service]
+
+      User=dns-web
+
+      ExecStart=/usr/bin/python3 -m http.server 80 --bind {{ web_bind }} --directory
+      /srv/dns-lab-www
+
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+      CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+      NoNewPrivileges=true
+
+      Restart=on-failure
+
+      [Install]
+
+      WantedBy=multi-user.target
+
+      '
+    mode: '0644'
+- name: Start HTTP service
+  ansible.builtin.systemd:
+    name: dns-lab-web
+    enabled: true
+    state: restarted
+    daemon_reload: true

@@ -1,0 +1,7 @@
+$ORIGIN {{ zone }}
+$TTL 30
+@ IN SOA ns.{{ zone }} hostmaster.{{ zone }} ( 2026091901 60 30 3600 30 )
+@ IN NS ns.{{ zone }}
+ns IN A {{ dns_ip }}
+portal IN A {{ portal_ip }}
+files IN A {{ files_ip }}

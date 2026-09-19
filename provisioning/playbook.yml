@@ -1,0 +1,62 @@
+- name: Provision dns
+  hosts: dns_nodes
+  become: true
+  vars:
+    lab_mode: dns
+    lab_bind: 10.60.20.53
+    lab_port: 9090
+  roles:
+  - common
+  - dns
+- name: Provision workstation
+  hosts: workstation_nodes
+  become: true
+  vars:
+    lab_mode: client
+    lab_bind: 10.60.30.10
+    lab_port: 9090
+  roles:
+  - common
+  - client
+- name: Provision attacker
+  hosts: attacker_nodes
+  become: true
+  vars:
+    lab_mode: attacker
+    lab_bind: 10.60.40.10
+    lab_port: 9090
+    web_identity: ROGUE-TRAINING-PAGE
+    web_bind: 10.60.40.10
+    web_title: Trang mô phỏng chuyển hướng DNS
+  roles:
+  - common
+  - attacker
+  - web
+- name: Provision admin
+  hosts: admin_nodes
+  become: true
+  vars:
+    lab_mode: admin
+    lab_bind: 10.60.10.10
+    lab_port: 8080
+  roles:
+  - common
+  - admin
+- name: Provision portal
+  hosts: portal_nodes
+  become: true
+  vars:
+    web_identity: NORTHSTAR-INTRANET
+    web_bind: 10.60.20.10
+    web_title: Northstar · Cổng nhân viên
+  roles:
+  - web
+- name: Provision files
+  hosts: files_nodes
+  become: true
+  vars:
+    web_identity: NORTHSTAR-FILES
+    web_bind: 10.60.20.20
+    web_title: Northstar · Tài liệu nội bộ
+  roles:
+  - web

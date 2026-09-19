@@ -1,0 +1,102 @@
+name: northstar-dns-recovery-adaptive
+hosts:
+- name: admin
+  base_box:
+    image: ubuntu-focal-x86_64
+    man_user: ubuntu
+  flavor: standard.small
+- name: dns
+  base_box:
+    image: ubuntu-focal-x86_64
+    man_user: ubuntu
+  flavor: standard.small
+- name: portal
+  base_box:
+    image: ubuntu-focal-x86_64
+    man_user: ubuntu
+  flavor: standard.small
+- name: files
+  base_box:
+    image: ubuntu-focal-x86_64
+    man_user: ubuntu
+  flavor: standard.small
+- name: workstation
+  base_box:
+    image: ubuntu-focal-x86_64
+    man_user: ubuntu
+  flavor: standard.small
+- name: attacker
+  base_box:
+    image: ubuntu-focal-x86_64
+    man_user: ubuntu
+  flavor: standard.small
+routers:
+- name: router
+  base_box:
+    image: debian-11
+    man_user: debian
+  flavor: standard.mini
+networks:
+- name: management
+  cidr: 10.60.10.0/24
+  accessible_by_user: true
+- name: services
+  cidr: 10.60.20.0/24
+  accessible_by_user: false
+- name: office
+  cidr: 10.60.30.0/24
+  accessible_by_user: false
+- name: external
+  cidr: 10.60.40.0/24
+  accessible_by_user: false
+net_mappings:
+- host: admin
+  network: management
+  ip: 10.60.10.10
+- host: dns
+  network: services
+  ip: 10.60.20.53
+- host: portal
+  network: services
+  ip: 10.60.20.10
+- host: files
+  network: services
+  ip: 10.60.20.20
+- host: workstation
+  network: office
+  ip: 10.60.30.10
+- host: attacker
+  network: external
+  ip: 10.60.40.10
+router_mappings:
+- router: router
+  network: management
+  ip: 10.60.10.1
+- router: router
+  network: services
+  ip: 10.60.20.1
+- router: router
+  network: office
+  ip: 10.60.30.1
+- router: router
+  network: external
+  ip: 10.60.40.1
+groups:
+- name: admin_nodes
+  nodes:
+  - admin
+- name: dns_nodes
+  nodes:
+  - dns
+- name: portal_nodes
+  nodes:
+  - portal
+- name: files_nodes
+  nodes:
+  - files
+- name: workstation_nodes
+  nodes:
+  - workstation
+- name: attacker_nodes
+  nodes:
+  - attacker

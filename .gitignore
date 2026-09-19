@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+*.retry
+*.zip
+inventory.ini

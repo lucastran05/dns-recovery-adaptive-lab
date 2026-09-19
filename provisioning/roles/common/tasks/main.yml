@@ -1,0 +1,33 @@
+- name: Install lab tools
+  ansible.builtin.apt:
+    name:
+    - python3
+    - dnsutils
+    - curl
+    - sudo
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+- name: Create private agent directories
+  ansible.builtin.file:
+    path: '{{ item }}'
+    state: directory
+    owner: root
+    mode: '0700'
+  loop:
+  - '{{ lab_root }}'
+  - '{{ data_dir }}'
+  - /etc/dns-lab
+- name: Install agent runtime
+  ansible.builtin.copy:
+    src: '{{ playbook_dir }}/files/dns_lab.py'
+    dest: '{{ lab_root }}/dns_lab.py'
+    mode: '0700'
+  notify: Restart DNS lab agent
+- name: Render private configuration
+  ansible.builtin.template:
+    src: '{{ playbook_dir }}/templates/config.json.j2'
+    dest: /etc/dns-lab/config.json
+    mode: '0600'
+  no_log: true
+  notify: Restart DNS lab agent

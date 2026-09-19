@@ -1,0 +1,20 @@
+include "/etc/bind/legacy.key";
+include "/etc/bind/recovery.key";
+logging {
+ channel dns_lab_updates {
+  file "/var/cache/bind/dns-lab/updates.log" versions 3 size 5m;
+  severity info;
+  print-time yes;
+  print-category yes;
+  print-severity yes;
+ };
+ category update { dns_lab_updates; };
+ category update-security { dns_lab_updates; };
+ category security { dns_lab_updates; };
+};
+zone "{{ zone }}" {
+ type master;
+ file "/var/lib/bind/db.corp.test";
+ include "/etc/bind/dns-lab-policy.conf";
+ notify no;
+};
