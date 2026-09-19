@@ -4,32 +4,32 @@ hosts:
   base_box:
     image: ubuntu-focal-x86_64
     man_user: ubuntu
-  flavor: standard.small
+  flavor: m1.small
 - name: dns
   base_box:
     image: ubuntu-focal-x86_64
     man_user: ubuntu
-  flavor: standard.small
+  flavor: m1.small
 - name: portal
   base_box:
     image: ubuntu-focal-x86_64
     man_user: ubuntu
-  flavor: standard.small
+  flavor: m1.small
 - name: files
   base_box:
     image: ubuntu-focal-x86_64
     man_user: ubuntu
-  flavor: standard.small
+  flavor: m1.small
 - name: workstation
   base_box:
     image: ubuntu-focal-x86_64
     man_user: ubuntu
-  flavor: standard.small
+  flavor: m1.small
 - name: attacker
   base_box:
     image: ubuntu-focal-x86_64
     man_user: ubuntu
-  flavor: standard.small
+  flavor: m1.small
 routers:
 - name: router
   base_box:
